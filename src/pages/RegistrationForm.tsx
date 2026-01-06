@@ -153,9 +153,18 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ navigateTo, vetId }
 
     } catch (e: any) {
       console.error(e);
-      alert('Erro ao salvar: ' + e.message);
+      let errorMessage = e.message;
+      if (errorMessage.includes('1 seconds')) {
+        errorMessage = 'Por segurança, aguarde alguns segundos antes de tentar novamente.';
+      } else if (errorMessage.includes('row-level security')) {
+        errorMessage = 'Erro de permissão no banco de dados. O Administrador precisa de permissão para criar perfis.';
+      }
+      alert('Erro ao salvar: ' + errorMessage);
     } finally {
-      setLoading(false);
+      // Add a small cooldown before allowing another attempt if it failed
+      setTimeout(() => {
+        setLoading(false);
+      }, 2000);
     }
   };
 
@@ -314,10 +323,13 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ navigateTo, vetId }
         <button
           onClick={handleSubmit}
           disabled={loading}
-          className="w-full h-14 bg-primary hover:bg-blue-600 text-white font-extrabold text-lg rounded-2xl shadow-xl shadow-primary/30 flex items-center justify-center gap-2 transition-all active:scale-95"
+          className={`w-full h-14 bg-primary hover:bg-blue-600 text-white font-extrabold text-lg rounded-2xl shadow-xl shadow-primary/30 flex items-center justify-center gap-2 transition-all active:scale-95 ${loading ? 'opacity-70 cursor-not-allowed shadow-none scale-95' : ''}`}
         >
           {loading ? (
-            <span>Salvando...</span>
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined animate-spin">sync</span>
+              <span>Processando...</span>
+            </div>
           ) : (
             <>
               <span className="material-symbols-outlined">check</span>
