@@ -20,11 +20,16 @@ import PatientRegistration from './pages/PatientRegistration';
 import ForcePasswordChange from './pages/ForcePasswordChange';
 
 const AppContent: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState<string>('login');
-  const [userRole, setUserRole] = useState<UserRole>('tutor');
-  const [isDarkMode, setIsDarkMode] = useState(true);
-  const [selectedVetId, setSelectedVetId] = useState<string | null>(null);
-  const { session } = useAuth();
+  const { session, loading: authLoading, profile } = useAuth();
+
+  // Persist Page State
+  const [currentPage, setCurrentPage] = useState<string>(() => {
+    return localStorage.getItem('billybuddy_page') || 'login';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('billybuddy_page', currentPage);
+  }, [currentPage]);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -110,6 +115,17 @@ const AppContent: React.FC = () => {
         />;
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background-dark flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-white font-bold animate-pulse">Carregando BillyBuddy...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f6f7f8] dark:bg-background-dark font-sans transition-colors duration-300 flex items-center justify-center">
