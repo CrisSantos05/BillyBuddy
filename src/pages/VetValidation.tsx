@@ -78,6 +78,10 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
     const handleDeleteVet = async (id: string, userId: string) => {
         if (!confirm('Tem certeza que deseja excluir este veterinário? Esta ação não pode ser desfeita.')) return;
 
+        // Optimistic update: remove from local state immediately
+        const previousVets = [...vets];
+        setVets(vets.filter(v => v.id !== id));
+
         try {
             setLoading(true);
 
@@ -89,10 +93,12 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
             const { error: profileError } = await supabase.from('profiles').delete().eq('id', id);
             if (profileError) throw profileError;
 
-            await fetchVets(); // Refresh list immediately
-            alert('Veterinário excluído com sucesso! Agora você já pode cadastrar este e-mail novamente se desejar.');
+            alert('Veterinário excluído com sucesso!');
+            await fetchVets(); // Sync with DB
         } catch (error: any) {
             console.error('Error deleting vet:', error);
+            // Revert on error
+            setVets(previousVets);
             alert('Erro ao excluir: ' + error.message);
         } finally {
             setLoading(false);
