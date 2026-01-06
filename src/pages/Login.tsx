@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import TutorRegistrationModal from '../components/TutorRegistrationModal';
 
 interface LoginProps {
-  onLogin: (role: 'tutor' | 'vet') => void;
+  onLogin: (role: 'tutor' | 'vet' | 'admin') => void;
   navigateTo: (page: string) => void;
 }
 
@@ -58,10 +58,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, navigateTo }) => {
           // 2. Strict Role Enforcement
           if (profile?.role === 'vet') {
             onLogin('vet');
+          } else if (profile?.role === 'admin') {
+            onLogin('admin');
           } else {
-            // If user exists but is NOT a vet (e.g. Tutor trying to login as Vet), deny access
+            // If user exists but is NOT a vet/admin (e.g. Tutor trying to login as Vet), deny access
             await supabase.auth.signOut(); // Ensure session is cleared
-            alert('Acesso Negado: Esta conta não possui permissões de veterinário.');
+            alert('Acesso Negado: Esta conta não possui permissões administrativas ou de veterinário.');
           }
         }
       }

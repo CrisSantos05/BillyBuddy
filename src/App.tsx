@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { UserRole } from './types';
+export type UserRole = 'tutor' | 'vet' | 'admin';
 import Login from './pages/Login';
 import VetValidation from './pages/VetValidation';
 import VetSettings from './pages/VetSettings';
@@ -41,7 +41,11 @@ const AppContent: React.FC = () => {
       if (profile.must_change_password) {
         setCurrentPage('force-password-change');
       } else {
-        setCurrentPage(profile.role === 'vet' ? 'vet-dashboard' : 'tutor-dashboard');
+        if (profile.role === 'admin') {
+          setCurrentPage('admin');
+        } else {
+          setCurrentPage(profile.role === 'vet' ? 'vet-dashboard' : 'tutor-dashboard');
+        }
       }
     }
   }, [session, profile, currentPage]);
@@ -52,7 +56,11 @@ const AppContent: React.FC = () => {
         return <Login
           onLogin={(role) => {
             setUserRole(role);
-            setCurrentPage(role === 'tutor' ? 'tutor-dashboard' : 'vet-dashboard');
+            if (role === 'admin') {
+              setCurrentPage('admin');
+            } else {
+              setCurrentPage(role === 'tutor' ? 'tutor-dashboard' : 'vet-dashboard');
+            }
           }}
           navigateTo={setCurrentPage}
         />;
@@ -92,7 +100,11 @@ const AppContent: React.FC = () => {
         return <Login
           onLogin={(role) => {
             setUserRole(role);
-            setCurrentPage(role === 'tutor' ? 'tutor-dashboard' : 'vet-dashboard');
+            if (role === 'admin') {
+              setCurrentPage('admin');
+            } else {
+              setCurrentPage(role === 'tutor' ? 'tutor-dashboard' : 'vet-dashboard');
+            }
           }}
           navigateTo={setCurrentPage}
         />;
