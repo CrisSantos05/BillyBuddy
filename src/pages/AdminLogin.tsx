@@ -10,7 +10,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ navigateTo }) => {
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
-        if (username === 'admin' && password === 'a1a2a3a4a5a6') {
+        if (username === 'cris.santos@gmail.com' && password === 'a1a2a3a4a5a6') {
             navigateTo('admin');
         } else {
             alert('Credenciais inválidas. Acesso negado.');
@@ -49,7 +49,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ navigateTo }) => {
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                                 className="w-full h-14 bg-white dark:bg-[#2d241b] rounded-2xl pl-12 pr-4 text-sm font-bold border-2 border-transparent focus:border-red-500/50 focus:bg-white dark:focus:bg-[#2d241b] focus:ring-4 focus:ring-red-500/10 outline-none transition-all placeholder:text-slate-300"
-                                placeholder="Usuário Admin"
+                                placeholder="E-mail Admin"
                                 autoFocus
                             />
                         </div>
