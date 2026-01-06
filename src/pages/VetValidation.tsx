@@ -89,11 +89,7 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
             const { error: profileError } = await supabase.from('profiles').delete().eq('id', id);
             if (profileError) throw profileError;
 
-            // Note: We cannot delete from auth.users via client SDK. 
-            // The user will remain in Auth but without profile/data. 
-            // To re-register with the SAME email, the admin must delete the user from the Supabase Dashboard > Authentication.
-
-            alert('Veterinário excluído do banco de dados.\n\nIMPORTANTE: Para cadastrar o mesmo email novamente, você deve excluir o usuário também no painel "Authentication" do Supabase.');
+            alert('Veterinário excluído com sucesso! Agora você já pode cadastrar este e-mail novamente se desejar.');
 
             fetchVets(); // Refresh list
         } catch (error: any) {
