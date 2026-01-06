@@ -1,0 +1,7 @@
+{
+  "name": "BillyBuddy",
+  "description": "Uma plataforma completa para conectar tutores de pets e veterinários, com gerenciamento de saúde, vacinação e agendamentos.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
