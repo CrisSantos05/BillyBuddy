@@ -27,6 +27,10 @@ const AppContent: React.FC = () => {
     return localStorage.getItem('billybuddy_page') || 'login';
   });
 
+  const [userRole, setUserRole] = useState<UserRole>('tutor');
+  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [selectedVetId, setSelectedVetId] = useState<string | null>(null);
+
   useEffect(() => {
     localStorage.setItem('billybuddy_page', currentPage);
   }, [currentPage]);
@@ -40,7 +44,6 @@ const AppContent: React.FC = () => {
   }, [isDarkMode]);
 
   // Handle Session - Auto Redirect
-  const { profile } = useAuth();
   useEffect(() => {
     if (session && profile && currentPage === 'login') {
       if (profile.must_change_password) {
