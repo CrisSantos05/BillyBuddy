@@ -89,9 +89,8 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
             const { error: profileError } = await supabase.from('profiles').delete().eq('id', id);
             if (profileError) throw profileError;
 
+            await fetchVets(); // Refresh list immediately
             alert('Veterinário excluído com sucesso! Agora você já pode cadastrar este e-mail novamente se desejar.');
-
-            fetchVets(); // Refresh list
         } catch (error: any) {
             console.error('Error deleting vet:', error);
             alert('Erro ao excluir: ' + error.message);
