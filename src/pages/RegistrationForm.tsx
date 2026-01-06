@@ -98,7 +98,9 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ navigateTo, vetId }
           options: {
             data: {
               full_name: formData.name,
-              role: 'vet'
+              role: 'vet',
+              temp_password: tempPassword,
+              welcome_message: "Bem vindo a BillyBuddy. Aqui seu PET terá o melhor atendimento que ele merece."
             }
           }
         });
