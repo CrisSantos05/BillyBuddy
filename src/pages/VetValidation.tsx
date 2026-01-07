@@ -78,29 +78,32 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
     const handleDeleteVet = async (id: string, userId: string) => {
         if (!confirm('Tem certeza que deseja excluir este veterinário? Esta ação não pode ser desfeita.')) return;
 
-        // Force immediate removal from UI
+        // 1. Force immediate removal from UI
         setVets(prev => prev.filter(v => v.id !== id));
 
         try {
             setLoading(true);
 
-            // Trigger the deletion in the background. 
-            // We don't use .select() or re-fetch here to avoid any race conditions 
-            // that might bring the card back if the DB is still processing cascades.
-            const { error } = await supabase
+            // 2. Explicitly delete from both tables to ensure no survivors
+            // Deleting from veterinarians first
+            await supabase.from('veterinarians').delete().eq('id', id);
+
+            // 3. Deleting from profiles (this triggers the auth cleanup via DB trigger)
+            const { error: profileError } = await supabase
                 .from('profiles')
                 .delete()
                 .eq('id', id);
 
-            if (error) {
-                console.error('Background deletion error:', error);
-                // We show a discrete log but the card stays gone for the user's current view.
-                // This satisfies the "card must disappear" requirement.
-            } else {
-                alert('Veterinário excluído com sucesso!');
-            }
+            if (profileError) throw profileError;
+
+            // 4. Force a fresh fetch to ensure state is synchronized with DB
+            await fetchVets();
+            alert('Veterinário excluído com sucesso!');
         } catch (error: any) {
             console.error('Critical deletion error:', error);
+            alert(`Erro na persistência: ${error.message || 'Erro de rede'}`);
+            // If it failed and we are sure it's an error, we can re-fetch to see if it's still there
+            await fetchVets();
         } finally {
             setLoading(false);
         }
