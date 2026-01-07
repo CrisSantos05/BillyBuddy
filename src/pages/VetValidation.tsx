@@ -89,12 +89,19 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
 
             // Deleting from 'profiles' will cascade to 'veterinarians' table 
             // and trigger auth.users deletion via our database trigger.
-            const { error: profileError } = await supabase
+            // We use .select() to verify if the row was actually deleted (RLS check)
+            const { data, error: profileError } = await supabase
                 .from('profiles')
                 .delete()
-                .eq('id', id);
+                .eq('id', id)
+                .select();
 
             if (profileError) throw profileError;
+
+            // If data is empty, it means RLS blocked the deletion or the row didn't exist
+            if (!data || data.length === 0) {
+                throw new Error('Permissão negada ou registro não encontrado. Verifique se você é um administrador.');
+            }
 
             // Success! No need to wait for fetchVets if we are confident, 
             // but sync once more to be sure nothing else appeared.
