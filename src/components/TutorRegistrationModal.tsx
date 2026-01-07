@@ -16,6 +16,7 @@ const TutorRegistrationModal: React.FC<TutorRegistrationModalProps> = ({ isOpen,
         email: '',
         cpf: '',
         dob: '',
+        phone: '',
         password: '',
         confirmPassword: ''
     });
@@ -28,7 +29,7 @@ const TutorRegistrationModal: React.FC<TutorRegistrationModalProps> = ({ isOpen,
 
     const handleNextStep = () => {
         if (step === 1) {
-            if (!formData.name || !formData.surname || !formData.cpf || !formData.dob) {
+            if (!formData.name || !formData.surname || !formData.cpf || !formData.dob || !formData.phone) {
                 alert('Preencha todos os campos obrigatórios.');
                 return;
             }
@@ -63,6 +64,7 @@ const TutorRegistrationModal: React.FC<TutorRegistrationModalProps> = ({ isOpen,
                         full_name: `${formData.name} ${formData.surname}`,
                         cpf: formData.cpf,
                         dob: formData.dob,
+                        phone: formData.phone,
                         role: 'tutor'
                     }
                 }
@@ -79,6 +81,7 @@ const TutorRegistrationModal: React.FC<TutorRegistrationModalProps> = ({ isOpen,
                             email: formData.email,
                             full_name: `${formData.name} ${formData.surname}`,
                             cpf: formData.cpf,
+                            phone: formData.phone,
                             role: 'tutor'
                         }
                     ]);
@@ -159,6 +162,16 @@ const TutorRegistrationModal: React.FC<TutorRegistrationModalProps> = ({ isOpen,
                                     value={formData.dob}
                                     onChange={handleChange}
                                     className="w-full h-12 rounded-xl bg-slate-50 dark:bg-[#2a231d] border-none px-4 font-bold focus:ring-2 focus:ring-primary text-slate-600 dark:text-gray-300"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-slate-400 uppercase ml-1">Telefone (WhatsApp)</label>
+                                <input
+                                    name="phone"
+                                    value={formData.phone}
+                                    onChange={handleChange}
+                                    className="w-full h-12 rounded-xl bg-slate-50 dark:bg-[#2a231d] border-none px-4 font-bold focus:ring-2 focus:ring-primary"
+                                    placeholder="(00) 00000-0000"
                                 />
                             </div>
                             <button

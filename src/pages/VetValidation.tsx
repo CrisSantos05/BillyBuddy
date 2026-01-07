@@ -96,7 +96,8 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
 
             // 2. Double check if rows were actually deleted (RLS check)
             if (!data || data.length === 0) {
-                throw new Error('Permissão negada ou registro não encontrado no banco de dados.');
+                console.error('RLS Blocked deletion or record not found for ID:', id);
+                throw new Error('Permissão negada pelo banco de dados. Verifique se você está logado com a conta cris.santos@gmail.com.');
             }
 
             // 3. Update the list immediately
@@ -214,6 +215,7 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
 
                             <div className="text-xs text-slate-500 space-y-1 mb-4 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl">
                                 <p><span className="font-bold">CPF:</span> {vet.profile?.cpf}</p>
+                                <p><span className="font-bold">Telefone:</span> {vet.profile?.phone || 'Não informado'}</p>
                                 <p><span className="font-bold">Contrato até:</span> {vet.contract_valid_until}</p>
                                 <p><span className="font-bold">Clínica:</span> {vet.clinic_name}</p>
                                 {vet.profile?.temp_password && (

@@ -239,7 +239,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ navigateTo, vetId }
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Telefone (WhatsApp)</label>
+                <label className="text-xs font-bold text-primary uppercase ml-1">Telefone (WhatsApp) *</label>
                 <div className="relative">
                   <input
                     name="phone"
