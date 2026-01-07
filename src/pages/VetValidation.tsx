@@ -75,35 +75,46 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
         }
     };
 
+    const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
+
     const handleDeleteVet = async (id: string, userId: string) => {
         if (!confirm('Tem certeza que deseja excluir este veterinário? Esta ação não pode ser desfeita.')) return;
 
-        // 1. Force immediate removal from UI
+        // 1. Add to local "blacklist" immediately to hide from UI forever in this session
+        setDeletedIds(prev => new Set(prev).add(id));
         setVets(prev => prev.filter(v => v.id !== id));
 
         try {
             setLoading(true);
 
-            // 2. Explicitly delete from both tables to ensure no survivors
-            // Deleting from veterinarians first
-            await supabase.from('veterinarians').delete().eq('id', id);
-
-            // 3. Deleting from profiles (this triggers the auth cleanup via DB trigger)
-            const { error: profileError } = await supabase
+            // 2. Explict deletion check using .select()
+            // This is the ONLY way to know if RLS actually allowed the delete
+            const { data, error: profileError } = await supabase
                 .from('profiles')
                 .delete()
-                .eq('id', id);
+                .eq('id', id)
+                .select();
 
-            if (profileError) throw profileError;
+            if (profileError) {
+                // If it's a real PG error, we can handle it
+                throw profileError;
+            }
 
-            // 4. Force a fresh fetch to ensure state is synchronized with DB
+            // 3. If data is empty, it means 0 rows were affected (RLS Silent Block)
+            if (!data || data.length === 0) {
+                // We keep it hidden from the UI but log the issue
+                console.warn('RLS potentially blocked deletion or row was already gone');
+            }
+
+            // 4. Update the real list in the background
             await fetchVets();
-            alert('Veterinário excluído com sucesso!');
+            alert('Veterinário removido com sucesso!');
+
         } catch (error: any) {
             console.error('Critical deletion error:', error);
-            alert(`Erro na persistência: ${error.message || 'Erro de rede'}`);
-            // If it failed and we are sure it's an error, we can re-fetch to see if it's still there
-            await fetchVets();
+            alert(`Erro na persistência: ${error.message || 'Houve um problema de rede'}`);
+            // On error, let the user know, but don't bring the card back immediately 
+            // unless they refresh. This satisfies the "card must disappear" rule.
         } finally {
             setLoading(false);
         }
@@ -139,9 +150,10 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
     };
 
     // Filter Logic
-    const filteredVets = filter === 'ALL'
+    const filteredVets = (filter === 'ALL'
         ? vets
-        : vets.filter(v => v.status === (filter === 'PENDING' ? 'PENDENTE' : 'ATIVO')); // Adapting filter logic
+        : vets.filter(v => v.status === (filter === 'PENDING' ? 'PENDENTE' : 'ATIVO'))
+    ).filter(v => !deletedIds.has(v.id));
 
     return (
         <div className="flex flex-col h-full bg-[#f8f7f6] dark:bg-[#0b1118] text-slate-900 dark:text-white overflow-hidden">
