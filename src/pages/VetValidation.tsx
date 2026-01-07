@@ -78,28 +78,33 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
     const handleDeleteVet = async (id: string, userId: string) => {
         if (!confirm('Tem certeza que deseja excluir este veterinário? Esta ação não pode ser desfeita.')) return;
 
-        // Optimistic update: remove from local state immediately
+        // Store original state for revert
         const previousVets = [...vets];
+
+        // Optimistic update: remove from local state immediately
         setVets(vets.filter(v => v.id !== id));
 
         try {
             setLoading(true);
 
-            // 1. Delete from veterinarians table
-            const { error: vetError } = await supabase.from('veterinarians').delete().eq('id', id);
-            if (vetError) throw vetError;
+            // Deleting from 'profiles' will cascade to 'veterinarians' table 
+            // and trigger auth.users deletion via our database trigger.
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .delete()
+                .eq('id', id);
 
-            // 2. Delete from profiles table
-            const { error: profileError } = await supabase.from('profiles').delete().eq('id', id);
             if (profileError) throw profileError;
 
+            // Success! No need to wait for fetchVets if we are confident, 
+            // but sync once more to be sure nothing else appeared.
+            await fetchVets();
             alert('Veterinário excluído com sucesso!');
-            await fetchVets(); // Sync with DB
         } catch (error: any) {
             console.error('Error deleting vet:', error);
-            // Revert on error
+            // Revert state if backend delete failed
             setVets(previousVets);
-            alert('Erro ao excluir: ' + error.message);
+            alert(`Erro ao excluir: ${error.message || 'Erro de permissão ou rede'}`);
         } finally {
             setLoading(false);
         }

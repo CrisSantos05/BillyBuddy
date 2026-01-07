@@ -1,22 +1,69 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 
 interface AdminProps {
   navigateTo: (page: string) => void;
 }
 
 const Admin: React.FC<AdminProps> = ({ navigateTo }) => {
-  const stats = [
-    { label: 'Tutores', value: '1.284', icon: 'groups', color: 'bg-blue-500' },
-    { label: 'Pets', value: '3.492', icon: 'pets', color: 'bg-green-500' },
-    { label: 'Veterinários', value: '156', icon: 'medical_services', color: 'bg-indigo-500' },
-    { label: 'Consultas/Mês', value: '842', icon: 'event_available', color: 'bg-orange-500' }
-  ];
+  const [stats, setStats] = useState([
+    { label: 'Tutores', value: '0', icon: 'groups', color: 'bg-blue-500' },
+    { label: 'Pets', value: '0', icon: 'pets', color: 'bg-green-500' },
+    { label: 'Veterinários', value: '1', icon: 'medical_services', color: 'bg-indigo-500' },
+    { label: 'Consultas/Mês', value: '0', icon: 'event_available', color: 'bg-orange-500' }
+  ]);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    fetchRealStats();
+  }, []);
+
+  const fetchRealStats = async () => {
+    try {
+      // 1. Fetch Tutor Count
+      const { count: tutorCount } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'tutor');
+
+      // 2. Fetch Pet Count
+      const { count: petCount } = await supabase
+        .from('patients')
+        .select('*', { count: 'exact', head: true });
+
+      // 3. Fetch Vet Count
+      const { count: vetCount } = await supabase
+        .from('veterinarians')
+        .select('*', { count: 'exact', head: true });
+
+      // 4. Fetch Monthly Consultations
+      const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+      const { count: consultCount } = await supabase
+        .from('consultations')
+        .select('*', { count: 'exact', head: true })
+        .gte('consultation_date', firstDayOfMonth);
+
+      // 5. Fetch Pending Vets
+      const { count: pendingVets } = await supabase
+        .from('veterinarians')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'PENDENTE');
+
+      setStats([
+        { label: 'Tutores', value: (tutorCount || 0).toString(), icon: 'groups', color: 'bg-blue-500' },
+        { label: 'Pets', value: (petCount || 0).toString(), icon: 'pets', color: 'bg-green-500' },
+        { label: 'Veterinários', value: (vetCount || 0).toString(), icon: 'medical_services', color: 'bg-indigo-500' },
+        { label: 'Consultas/Mês', value: (consultCount || 0).toString(), icon: 'event_available', color: 'bg-orange-500' }
+      ]);
+      setPendingCount(pendingVets || 0);
+    } catch (error) {
+      console.error('Error fetching admin stats:', error);
+    }
+  };
 
   const recentLogs = [
-    { user: 'Dr. João Mendes', action: 'Cadastrou novo pet (Bobi)', time: '2 min atrás' },
-    { user: 'Maria Silva', action: 'Atualizou foto de perfil', time: '15 min atrás' },
-    { user: 'Sistema', action: 'Backup diário concluído', time: '1h atrás' }
+    { user: 'Admin', action: 'Acessou o painel de controle', time: 'Agora' },
+    { user: 'Sistema', action: 'Banco de dados sincronizado', time: 'Sincronizado' }
   ];
 
   return (
@@ -84,7 +131,11 @@ const Admin: React.FC<AdminProps> = ({ navigateTo }) => {
                 <span className="font-bold">Validar Veterinários</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="bg-orange-500 w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center text-white">3</span>
+                {pendingCount > 0 && (
+                  <span className="bg-orange-500 w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center text-white">
+                    {pendingCount}
+                  </span>
+                )}
                 <span className="material-symbols-outlined text-slate-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
               </div>
             </button>
