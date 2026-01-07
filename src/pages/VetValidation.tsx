@@ -12,6 +12,7 @@ interface RealVet {
         full_name: string;
         cpf: string;
         email: string;
+        phone?: string;
         temp_password?: string;
     };
     crmv: string;
@@ -48,6 +49,7 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
                         full_name,
                         cpf,
                         email,
+                        phone,
                         temp_password
                     )
                 `);
@@ -120,9 +122,15 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
         }
     };
 
-    const handleGenerateTempPass = (id: string, name: string) => {
-        const pass = Math.random().toString(36).slice(-8);
-        alert(`[SIMULAÇÃO]\n\nSenha temporária gerada: ${pass}\n\nATENÇÃO: Este botão apenas GERA um código visual. Ele NÃO altera a senha real no banco de dados (o Supabase não permite troca de senha de terceiros sem envio de email).\n\nSe o veterinário perdeu a senha, use "Alterar Senha" para enviar um email de redefinição ou exclua e cadastre novamente.`);
+    const handleWhatsAppSend = (phone: string, name: string, pass: string) => {
+        if (!phone) {
+            alert('Este veterinário não possui telefone cadastrado.');
+            return;
+        }
+        // Clean phone number (keep only digits)
+        const cleanPhone = phone.replace(/\D/g, '');
+        const message = encodeURIComponent(`Olá, Dr. ${name}! Seja bem-vindo ao BillyBuddy. 🐾\n\nSeu acesso ao painel veterinário já está liberado!\n\n📧 E-mail: (seu e-mail de cadastro)\n🔑 Senha Provisória: ${pass}\n\nLink de acesso: ${window.location.origin}\n\nPor favor, altere sua senha após o primeiro acesso.`);
+        window.open(`https://wa.me/55${cleanPhone}?text=${message}`, '_blank');
     };
 
     const handleChangePassword = async (id: string, email: string) => {
@@ -244,16 +252,17 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
                                     {editingPasswordId !== vet.id ? (
                                         <>
                                             <button
-                                                onClick={() => handleGenerateTempPass(vet.id, vet.profile?.full_name)}
-                                                className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-[10px] uppercase tracking-wide hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                                                onClick={() => handleWhatsAppSend(vet.profile?.phone || '', vet.profile?.full_name || '', vet.profile?.temp_password || '')}
+                                                className="flex-1 py-2.5 bg-[#25D366] text-white font-bold rounded-xl text-[10px] uppercase tracking-wide hover:bg-[#128C7E] transition-colors flex items-center justify-center gap-2"
                                             >
-                                                Senha Provisória
+                                                <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WA" className="w-4 h-4 brightness-0 invert" />
+                                                Enviar WhatsApp
                                             </button>
                                             <button
                                                 onClick={() => setEditingPasswordId(vet.id)}
                                                 className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-[10px] uppercase tracking-wide hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                                             >
-                                                Alterar Senha
+                                                Redefinir
                                             </button>
                                         </>
                                     ) : (

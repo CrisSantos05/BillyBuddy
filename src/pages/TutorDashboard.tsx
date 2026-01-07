@@ -1,15 +1,54 @@
 import React from 'react';
 import { MOCK_PETS, MOCK_APPOINTMENTS } from '../constants';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 
 interface TutorDashboardProps {
   navigateTo: (page: string) => void;
+  onSelectVet: (id: string) => void;
 }
 
-const TutorDashboard: React.FC<TutorDashboardProps> = ({ navigateTo }) => {
+const TutorDashboard: React.FC<TutorDashboardProps> = ({ navigateTo, onSelectVet }) => {
   const { signOut, profile, user } = useAuth();
   const [petImage, setPetImage] = React.useState(MOCK_PETS[0].imageUrl);
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [vets, setVets] = React.useState<any[]>([]);
+  const [isSearching, setIsSearching] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    if (searchTerm.length > 2) {
+      searchVets();
+    } else {
+      setVets([]);
+      setIsSearching(false);
+    }
+  }, [searchTerm]);
+
+  const searchVets = async () => {
+    setIsSearching(true);
+    try {
+      const { data, error } = await supabase
+        .from('veterinarians')
+        .select(`
+          id,
+          clinic_name,
+          uf,
+          crmv,
+          profile:profiles (
+            full_name
+          )
+        `)
+        .ilike('profile.full_name', `%${searchTerm}%`);
+
+      if (error) throw error;
+      setVets(data || []);
+    } catch (err) {
+      console.error("Search error:", err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   const displayName = profile?.full_name || user?.user_metadata?.full_name || 'Tutor';
   // If full_name has spaces, maybe just show First Name?
@@ -97,9 +136,19 @@ const TutorDashboard: React.FC<TutorDashboardProps> = ({ navigateTo }) => {
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
             <input
               className="h-11 w-full rounded-xl bg-gray-100 dark:bg-[#2a231d] pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/50 border-none transition-all"
-              placeholder="Buscar consultas, vet..."
+              placeholder="Buscar veterinário pelo nome..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          {searchTerm.length > 0 && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gray-100 dark:bg-[#2a231d] text-slate-500"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          )}
           <button className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gray-100 dark:bg-[#2a231d] text-slate-500">
             <span className="material-symbols-outlined">tune</span>
           </button>
@@ -107,7 +156,45 @@ const TutorDashboard: React.FC<TutorDashboardProps> = ({ navigateTo }) => {
       </header>
 
       {/* Main Content - Flex-1 faz com que ele ocupe todo o espaço entre header e footer */}
-      <main className="flex-1 overflow-y-auto px-6 pt-6 no-scrollbar">
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto px-6 pt-6 no-scrollbar relative">
+        {/* Search Results Overlay */}
+        {searchTerm.length > 0 && (
+          <div className="absolute inset-0 bg-[#f8f7f6] dark:bg-[#181411] z-50 px-6 pt-2">
+            <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-4">Resultados da Busca</h3>
+            {isSearching ? (
+              <div className="flex justify-center py-10">
+                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : vets.length > 0 ? (
+              <div className="space-y-4">
+                {vets.map((vet) => (
+                  <div
+                    key={vet.id}
+                    onClick={() => {
+                      onSelectVet(vet.id);
+                    }}
+                    className="flex items-center gap-4 bg-white dark:bg-[#2a231d] p-4 rounded-2xl shadow-sm border dark:border-white/5 active:scale-[0.98] transition-all"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-slate-400">person</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-extrabold text-sm">{vet.profile?.full_name}</p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase">{vet.clinic_name} • CRMV-{vet.uf}</p>
+                    </div>
+                    <span className="material-symbols-outlined text-slate-300">chevron_right</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-10">
+                <p className="text-sm font-bold text-slate-400">Nenhum veterinário encontrado.</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Quick Filters */}
         <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
           <button className="flex h-10 shrink-0 items-center gap-2 rounded-xl bg-primary px-5 shadow-lg shadow-primary/20">

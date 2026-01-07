@@ -111,6 +111,17 @@ const VetDashboard: React.FC<VetDashboardProps> = ({ navigateTo }) => {
           </div>
         </div>
 
+        {/* Professional Details Edit */}
+        <div className="px-6 mb-6">
+          <button
+            onClick={() => navigateTo('edit-vet-self')}
+            className="w-full flex items-center justify-center gap-2 p-4 bg-white dark:bg-[#393028] border dark:border-white/5 rounded-2xl font-bold text-primary active:scale-95 transition-all"
+          >
+            <span className="material-symbols-outlined text-[20px]">edit_note</span>
+            Editar Informações Profissionais
+          </button>
+        </div>
+
         {/* Account Settings */}
         <div className="px-6 mb-12">
           <div className="rounded-3xl bg-white dark:bg-[#393028] shadow-sm border dark:border-white/5 overflow-hidden">
@@ -171,7 +182,10 @@ const VetDashboard: React.FC<VetDashboardProps> = ({ navigateTo }) => {
           <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" className="w-6 h-6" />
           <span className="text-[10px] font-bold uppercase">WhatsApp</span>
         </a>
-        <button className="flex flex-col items-center gap-1 text-primary">
+        <button
+          onClick={() => navigateTo('vet-dashboard')}
+          className="flex flex-col items-center gap-1 text-primary"
+        >
           <span className="material-symbols-outlined filled">person</span>
           <span className="text-[10px] font-bold uppercase">Perfil</span>
         </button>

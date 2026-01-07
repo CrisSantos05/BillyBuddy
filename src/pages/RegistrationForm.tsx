@@ -16,6 +16,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ navigateTo, vetId }
     crmv: '',
     uf: 'SP',
     contractValidUntil: '',
+    phone: '',
   });
 
   useEffect(() => {
@@ -39,7 +40,8 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ navigateTo, vetId }
           cpf: profile.cpf,
           crmv: vet.crmv,
           uf: vet.uf,
-          contractValidUntil: vet.contract_valid_until
+          contractValidUntil: vet.contract_valid_until,
+          phone: profile.phone || ''
         });
       }
     } catch (error) {
@@ -55,7 +57,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ navigateTo, vetId }
   };
 
   const handleSubmit = async () => {
-    if (!formData.name || !formData.email || !formData.clinicName || !formData.cpf || !formData.crmv || !formData.contractValidUntil) {
+    if (!formData.name || !formData.email || !formData.phone || !formData.clinicName || !formData.cpf || !formData.crmv || !formData.contractValidUntil) {
       alert('Por favor, preencha todos os campos obrigatórios.');
       return;
     }
@@ -67,7 +69,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ navigateTo, vetId }
         // UPDATE MODE
         const { error: profileError } = await supabase
           .from('profiles')
-          .update({ full_name: formData.name, cpf: formData.cpf })
+          .update({ full_name: formData.name, cpf: formData.cpf, phone: formData.phone })
           .eq('id', vetId);
 
         if (profileError) throw profileError;
@@ -116,6 +118,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ navigateTo, vetId }
               email: formData.email,
               full_name: formData.name,
               cpf: formData.cpf,
+              phone: formData.phone,
               role: 'vet',
               must_change_password: true,
               temp_password: tempPassword
@@ -227,22 +230,40 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ navigateTo, vetId }
                     type="email"
                     value={formData.email}
                     onChange={handleChange}
-                    disabled={!!vetId} // Disable email edit for now
+                    disabled={!!vetId}
                     className={`w-full h-14 rounded-2xl border dark:border-[#54473b] bg-white dark:bg-[#2A221C] px-5 text-base font-bold focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-slate-300 outline-none transition-all ${vetId ? 'opacity-50 cursor-not-allowed' : ''}`}
                     placeholder="ex: contato@vet.com"
                   />
                   <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-300">mail</span>
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Telefone (WhatsApp)</label>
+                <div className="relative">
+                  <input
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className="w-full h-14 rounded-2xl border dark:border-[#54473b] bg-white dark:bg-[#2A221C] px-5 text-base font-bold focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-slate-300 outline-none transition-all"
+                    placeholder="Ex: (11) 98765-4321"
+                  />
+                  <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-300">phone</span>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-500 uppercase ml-1">CPF</label>
-                <input
-                  name="cpf"
-                  value={formData.cpf}
-                  onChange={handleChange}
-                  className="w-full h-14 rounded-2xl border dark:border-[#54473b] bg-white dark:bg-[#2A221C] px-5 text-base font-bold focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-slate-300 outline-none"
-                  placeholder="000.000.000-00"
-                />
+                <div className="relative">
+                  <input
+                    name="cpf"
+                    value={formData.cpf}
+                    onChange={handleChange}
+                    className="w-full h-14 rounded-2xl border dark:border-[#54473b] bg-white dark:bg-[#2A221C] px-5 text-base font-bold focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-slate-300 outline-none"
+                    placeholder="000.000.000-00"
+                  />
+                  <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-300">id_card</span>
+                </div>
               </div>
             </div>
           </div>

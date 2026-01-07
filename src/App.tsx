@@ -18,9 +18,10 @@ import Admin from './pages/Admin';
 import AdminLogin from './pages/AdminLogin';
 import PatientRegistration from './pages/PatientRegistration';
 import ForcePasswordChange from './pages/ForcePasswordChange';
+import VetProfileView from './pages/VetProfileView';
 
 const AppContent: React.FC = () => {
-  const { session, loading: authLoading, profile } = useAuth();
+  const { session, loading: authLoading, profile, user } = useAuth();
 
   // Persist Page State
   const [currentPage, setCurrentPage] = useState<string>(() => {
@@ -73,7 +74,7 @@ const AppContent: React.FC = () => {
           navigateTo={setCurrentPage}
         />;
       case 'tutor-dashboard':
-        return <TutorDashboard navigateTo={setCurrentPage} />;
+        return <TutorDashboard navigateTo={setCurrentPage} onSelectVet={(id) => { setSelectedVetId(id); setCurrentPage('vet-profile-view'); }} />;
       case 'vet-dashboard':
         return <VetDashboard navigateTo={setCurrentPage} />;
       case 'vaccination':
@@ -102,6 +103,10 @@ const AppContent: React.FC = () => {
         return <VetValidation navigateTo={setCurrentPage} onEditVet={(id) => { setSelectedVetId(id); setCurrentPage('edit-vet'); }} />;
       case 'edit-vet':
         return <RegistrationForm navigateTo={setCurrentPage} vetId={selectedVetId} />;
+      case 'edit-vet-self':
+        return <RegistrationForm navigateTo={setCurrentPage} vetId={user?.id} />;
+      case 'vet-profile-view':
+        return <VetProfileView navigateTo={setCurrentPage} vetId={selectedVetId} />;
       case 'vet-settings':
         return <VetSettings navigateTo={setCurrentPage} isDarkMode={isDarkMode} toggleTheme={() => setIsDarkMode(!isDarkMode)} />;
       default:
