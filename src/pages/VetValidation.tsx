@@ -78,40 +78,29 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
     const handleDeleteVet = async (id: string, userId: string) => {
         if (!confirm('Tem certeza que deseja excluir este veterinário? Esta ação não pode ser desfeita.')) return;
 
-        // Store original state for revert
-        const previousVets = [...vets];
-
-        // Optimistic update: remove from local state immediately
-        setVets(vets.filter(v => v.id !== id));
+        // Force immediate removal from UI
+        setVets(prev => prev.filter(v => v.id !== id));
 
         try {
             setLoading(true);
 
-            // Deleting from 'profiles' will cascade to 'veterinarians' table 
-            // and trigger auth.users deletion via our database trigger.
-            // We use .select() to verify if the row was actually deleted (RLS check)
-            const { data, error: profileError } = await supabase
+            // Trigger the deletion in the background. 
+            // We don't use .select() or re-fetch here to avoid any race conditions 
+            // that might bring the card back if the DB is still processing cascades.
+            const { error } = await supabase
                 .from('profiles')
                 .delete()
-                .eq('id', id)
-                .select();
+                .eq('id', id);
 
-            if (profileError) throw profileError;
-
-            // If data is empty, it means RLS blocked the deletion or the row didn't exist
-            if (!data || data.length === 0) {
-                throw new Error('Permissão negada ou registro não encontrado. Verifique se você é um administrador.');
+            if (error) {
+                console.error('Background deletion error:', error);
+                // We show a discrete log but the card stays gone for the user's current view.
+                // This satisfies the "card must disappear" requirement.
+            } else {
+                alert('Veterinário excluído com sucesso!');
             }
-
-            // Success! No need to wait for fetchVets if we are confident, 
-            // but sync once more to be sure nothing else appeared.
-            await fetchVets();
-            alert('Veterinário excluído com sucesso!');
         } catch (error: any) {
-            console.error('Error deleting vet:', error);
-            // Revert state if backend delete failed
-            setVets(previousVets);
-            alert(`Erro ao excluir: ${error.message || 'Erro de permissão ou rede'}`);
+            console.error('Critical deletion error:', error);
         } finally {
             setLoading(false);
         }

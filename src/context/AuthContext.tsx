@@ -7,6 +7,7 @@ interface AuthContextType {
     user: User | null;
     profile: any | null;
     signOut: () => Promise<void>;
+    refreshProfile: () => Promise<void>;
     loading: boolean;
 }
 
@@ -76,8 +77,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfile(null);
     };
 
+    const refreshProfile = async () => {
+        if (user) {
+            await fetchProfile(user.id);
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ session, user, profile, signOut, loading }}>
+        <AuthContext.Provider value={{ session, user, profile, signOut, refreshProfile, loading }}>
             {!loading && children}
         </AuthContext.Provider>
     );

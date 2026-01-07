@@ -7,7 +7,7 @@ interface ForcePasswordChangeProps {
 }
 
 const ForcePasswordChange: React.FC<ForcePasswordChangeProps> = ({ navigateTo }) => {
-    const { user } = useAuth();
+    const { user, profile, refreshProfile } = useAuth();
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -38,12 +38,16 @@ const ForcePasswordChange: React.FC<ForcePasswordChangeProps> = ({ navigateTo })
                     .eq('id', user.id);
 
                 if (dbError) throw dbError;
+
+                // 3. Refresh profile state in AuthContext
+                await refreshProfile();
             }
 
             alert('Senha atualizada com sucesso!');
 
-            // 3. Redirect to Vet Dashboard
-            navigateTo('vet-dashboard');
+            // 4. Redirect to dashboard happens automatically via App.tsx 
+            // but we can force it here just in case.
+            navigateTo(profile?.role === 'admin' ? 'admin' : 'vet-dashboard');
 
         } catch (error: any) {
             alert('Erro ao atualizar senha: ' + error.message);
