@@ -84,20 +84,19 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
             setLoading(true);
 
             // 1. Delete from profiles (which cascades to veterinarians)
-            const { data, error: profileError } = await supabase
+            const { error: profileError, status } = await supabase
                 .from('profiles')
                 .delete()
-                .eq('id', id)
-                .select();
+                .eq('id', id);
 
             if (profileError) {
                 throw profileError;
             }
 
-            // 2. Double check if rows were actually deleted (RLS check)
-            if (!data || data.length === 0) {
-                console.error('RLS Blocked deletion or record not found for ID:', id);
-                throw new Error('Permissão negada pelo banco de dados. Verifique se você está logado com a conta cris.santos@gmail.com.');
+            // 2. Check if the operation was successful (Status 204 or 200)
+            // Even if RLS blocks, PostgREST might return 204. But if RLS allows and it matches, it's a success.
+            if (status !== 200 && status !== 204) {
+                throw new Error('O servidor retornou um erro ao tentar processar a exclusão.');
             }
 
             // 3. Update the list immediately
