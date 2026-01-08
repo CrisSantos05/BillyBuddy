@@ -37,6 +37,8 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
     const fetchVets = async () => {
         try {
             setLoading(true);
+            console.log('Iniciando busca de veterinários...');
+
             const { data, error } = await supabase
                 .from('veterinarians')
                 .select(`
@@ -55,7 +57,12 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
                     )
                 `);
 
-            if (error) throw error;
+            console.log('Resposta do Supabase:', { data, error });
+
+            if (error) {
+                console.error('Erro do Supabase:', error);
+                throw error;
+            }
 
             // Map Supabase response to our interface
             const formattedVets = data?.map((item: any) => ({
@@ -68,11 +75,12 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
                 clinic_name: item.clinic_name
             })) || [];
 
+            console.log('Veterinários formatados:', formattedVets);
             setVets(formattedVets);
 
-        } catch (error) {
-            console.error("Error fetching vets:", error);
-            alert("Erro ao carregar lista de veterinários.");
+        } catch (error: any) {
+            console.error("Erro ao buscar veterinários:", error);
+            alert(`Erro ao carregar lista: ${error.message || 'Erro desconhecido'}`);
         } finally {
             setLoading(false);
         }
