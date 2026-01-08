@@ -189,6 +189,9 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ navigateTo, vetId }
           }
 
           alert(`Veterinário cadastrado com sucesso!\nSenha Provisória: ${tempPassword}`);
+
+          // Pequeno delay para garantir que o banco processou os dados
+          await new Promise(resolve => setTimeout(resolve, 500));
           navigateTo('vet-validation');
         }
       }

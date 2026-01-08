@@ -34,6 +34,29 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
         fetchVets();
     }, []);
 
+    // Recarregar quando a página volta ao foco (quando usuário volta de outra página)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                console.log('Página voltou ao foco, recarregando veterinários...');
+                fetchVets();
+            }
+        };
+
+        const handleFocus = () => {
+            console.log('Janela recebeu foco, recarregando veterinários...');
+            fetchVets();
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('focus', handleFocus);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', handleFocus);
+        };
+    }, []);
+
     const fetchVets = async (retryCount = 0) => {
         try {
             setLoading(true);
@@ -124,13 +147,12 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
                 console.error('Erro ao marcar inativo:', error);
                 throw error;
             }
-            // Atualiza lista local
-            setVets(prev => prev.map(v => (v.id === id ? { ...v, status: 'INATIVO' } : v)));
             alert('Veterinário marcado como cliente inativo.');
+            // Recarrega a lista completa do banco de dados
+            await fetchVets();
         } catch (e: any) {
             console.error('Erro ao marcar inativo:', e);
             alert(`Erro ao marcar inativo: ${e.message || 'Problema de rede'}`);
-        } finally {
             setLoading(false);
         }
     };
@@ -148,13 +170,12 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
                 console.error('Erro ao reativar:', error);
                 throw error;
             }
-            // Atualiza lista local
-            setVets(prev => prev.map(v => (v.id === id ? { ...v, status: 'ATIVO' } : v)));
             alert('Veterinário reativado com sucesso.');
+            // Recarrega a lista completa do banco de dados
+            await fetchVets();
         } catch (e: any) {
             console.error('Erro ao reativar:', e);
             alert(`Erro ao reativar: ${e.message || 'Problema de rede'}`);
-        } finally {
             setLoading(false);
         }
     };
@@ -217,7 +238,14 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
                     <span className="material-symbols-outlined">arrow_back</span>
                 </button>
                 <h2 className="text-lg font-extrabold">Validar Veterinários</h2>
-                <div className="w-10"></div>
+                <button
+                    onClick={() => fetchVets()}
+                    disabled={loading}
+                    className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors disabled:opacity-50"
+                    title="Recarregar lista"
+                >
+                    <span className={`material-symbols-outlined ${loading ? 'animate-spin' : ''}`}>refresh</span>
+                </button>
             </header>
 
             <main className="flex-1 overflow-y-auto p-6 no-scrollbar pb-20">
