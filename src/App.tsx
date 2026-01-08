@@ -55,9 +55,19 @@ const AppContent: React.FC = () => {
       }
       */
 
-      // Removed Initial Login Redirect to force manual login
+      // Auto Redirect if logged in and currently on login page
+      // This prevents "logging out" on refresh
+      if (currentPage === 'login') {
+        if (profile.role === 'admin') {
+          setCurrentPage('admin');
+        } else if (profile.role === 'veterinarian' || (user?.user_metadata?.role === 'vet')) {
+          setCurrentPage('vet-dashboard');
+        } else {
+          setCurrentPage('tutor-dashboard');
+        }
+      }
     }
-  }, [session, profile, currentPage, authLoading]);
+  }, [session, profile, currentPage, authLoading, user]);
 
   const renderPage = () => {
     switch (currentPage) {
