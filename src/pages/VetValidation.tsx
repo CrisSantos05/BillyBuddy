@@ -39,7 +39,13 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
             setLoading(true);
             console.log('Iniciando busca de veterinários...');
 
-            const { data, error } = await supabase
+            // Create a timeout promise
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Timeout: A busca demorou mais de 15 segundos')), 15000)
+            );
+
+            // Create the query promise
+            const queryPromise = supabase
                 .from('veterinarians')
                 .select(`
                     id,
@@ -56,6 +62,9 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
                         temp_password
                     )
                 `);
+
+            // Race between query and timeout
+            const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
             console.log('Resposta do Supabase:', { data, error });
 
@@ -80,7 +89,7 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
 
         } catch (error: any) {
             console.error("Erro ao buscar veterinários:", error);
-            alert(`Erro ao carregar lista: ${error.message || 'Erro desconhecido'}`);
+            alert(`Erro ao carregar lista: ${error.message || 'Erro desconhecido'}. Verifique sua conexão com a internet e tente novamente.`);
         } finally {
             setLoading(false);
         }
