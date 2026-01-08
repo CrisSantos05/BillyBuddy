@@ -10,7 +10,7 @@ const Admin: React.FC<AdminProps> = ({ navigateTo }) => {
     { label: 'Tutores', value: '0', icon: 'groups', color: 'bg-blue-500' },
     { label: 'Pets', value: '0', icon: 'pets', color: 'bg-green-500' },
     { label: 'Veterinários', value: '1', icon: 'medical_services', color: 'bg-indigo-500' },
-    { label: 'Consultas/Mês', value: '0', icon: 'event_available', color: 'bg-orange-500' }
+    { label: 'Solicitações', value: '0', icon: 'person_add', color: 'bg-purple-500' } // Substituí Consultas/Mês ou adicionei novo
   ]);
   const [pendingCount, setPendingCount] = useState(0);
 
@@ -54,10 +54,16 @@ const Admin: React.FC<AdminProps> = ({ navigateTo }) => {
         .select('*', { count: 'exact', head: true })
         .eq('status', 'PENDENTE');
 
+      // 6. Fetch Tutor Requests (pending)
+      const { count: pendingRequests } = await supabase
+        .from('tutor_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'PENDING');
+
       setStats([
         { label: 'Tutores', value: (tutorCount || 0).toString(), icon: 'groups', color: 'bg-blue-500' },
-        { label: 'Pets', value: (petCount || 0).toString(), icon: 'pets', color: 'bg-green-500' },
         { label: 'Veterinários', value: (vetCount || 0).toString(), icon: 'medical_services', color: 'bg-indigo-500' },
+        { label: 'Solicitações', value: (pendingRequests || 0).toString(), icon: 'person_add', color: 'bg-purple-500' },
         { label: 'Consultas/Mês', value: (consultCount || 0).toString(), icon: 'event_available', color: 'bg-orange-500' }
       ]);
       setPendingCount(pendingVets || 0);
@@ -109,6 +115,13 @@ const Admin: React.FC<AdminProps> = ({ navigateTo }) => {
           .gte('consultation_date', firstDayOfMonth)
           .order('consultation_date', { ascending: false })
           .limit(5);
+        data = res || [];
+      } else if (label === 'Solicitações') {
+        const { data: res } = await supabase
+          .from('tutor_requests')
+          .select('*, vet:veterinarians(clinic_name)') // Tenta trazer quem indicou se possível
+          .eq('status', 'PENDING')
+          .order('created_at', { ascending: false });
         data = res || [];
       }
       setPreviewData(data);
@@ -209,6 +222,29 @@ const Admin: React.FC<AdminProps> = ({ navigateTo }) => {
                             <p className="text-[10px] text-slate-400 font-bold truncate">
                               {new Date(item.consultation_date).toLocaleDateString('pt-BR')} • {item.diagnosis ? 'Com diagnóstico' : 'Em andamento'}
                             </p>
+                          </>
+                        )}
+                        {activePreview === 'Solicitações' && (
+                          <>
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="text-sm font-bold truncate">{item.full_name || 'Sem Nome'}</p>
+                                <p className="text-[10px] text-slate-400 font-bold truncate">{item.email} • {item.phone}</p>
+                                {item.pet_name && <p className="text-[10px] text-primary font-bold truncate mt-0.5">Pet: {item.pet_name}</p>}
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // Ação rápida: Copiar dados para criar
+                                  const text = `Nome: ${item.full_name}\nEmail: ${item.email}\nSenha Temp: Billy123`;
+                                  navigator.clipboard.writeText(text);
+                                  alert('Dados copiados! Crie o usuário manualmente por enquanto.');
+                                }}
+                                className="px-3 py-1 bg-green-500 text-white rounded-lg text-xs font-bold shadow-md hover:bg-green-600 transition-colors"
+                              >
+                                Criar
+                              </button>
+                            </div>
                           </>
                         )}
                       </div>

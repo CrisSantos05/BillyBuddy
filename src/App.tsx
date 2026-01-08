@@ -20,6 +20,7 @@ import PatientRegistration from './pages/PatientRegistration';
 import ForcePasswordChange from './pages/ForcePasswordChange';
 import VetProfileView from './pages/VetProfileView';
 import ChangePassword from './pages/ChangePassword.tsx';
+import RequestTutorAccess from './pages/RequestTutorAccess';
 
 const AppContent: React.FC = () => {
   const { session, loading: authLoading, profile, user } = useAuth();
@@ -121,6 +122,8 @@ const AppContent: React.FC = () => {
         return <VetSettings navigateTo={setCurrentPage} isDarkMode={isDarkMode} toggleTheme={() => setIsDarkMode(!isDarkMode)} />;
       case 'change-password':
         return <ChangePassword navigateTo={setCurrentPage} />;
+      case 'request-tutor-access':
+        return <RequestTutorAccess navigateTo={setCurrentPage} />;
       default:
         return <Login
           onLogin={(role) => {

@@ -142,6 +142,23 @@ const VetDashboard: React.FC<VetDashboardProps> = ({ navigateTo }) => {
           </button>
         </div>
 
+        {/* New Client Invite Action */}
+        <div className="px-6 mb-8">
+          <button
+            onClick={() => navigateTo('request-tutor-access')}
+            className="w-full flex items-center gap-4 p-5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-3xl shadow-xl shadow-blue-500/30 transition-all active:scale-[0.98]"
+          >
+            <div className="h-12 w-12 bg-white/20 rounded-2xl flex items-center justify-center">
+              <span className="material-symbols-outlined text-2xl">person_add</span>
+            </div>
+            <div className="text-left">
+              <p className="font-extrabold text-lg">Indicar Novo Cliente</p>
+              <p className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Solicitar acesso ao App</p>
+            </div>
+            <span className="material-symbols-outlined ml-auto">chevron_right</span>
+          </button>
+        </div>
+
         {/* Section Title */}
         <div className="px-6 mb-6">
           <h3 className="text-lg font-extrabold mb-4">Informações Profissionais</h3>
