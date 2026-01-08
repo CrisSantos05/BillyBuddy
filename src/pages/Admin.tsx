@@ -14,6 +14,11 @@ const Admin: React.FC<AdminProps> = ({ navigateTo }) => {
   ]);
   const [pendingCount, setPendingCount] = useState(0);
 
+  // Preview States
+  const [activePreview, setActivePreview] = useState<string | null>(null);
+  const [previewData, setPreviewData] = useState<any[]>([]);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+
   useEffect(() => {
     fetchRealStats();
   }, []);
@@ -61,6 +66,59 @@ const Admin: React.FC<AdminProps> = ({ navigateTo }) => {
     }
   };
 
+  const handleStatClick = async (label: string) => {
+    if (activePreview === label) {
+      setActivePreview(null); // Toggle off
+      return;
+    }
+
+    setActivePreview(label);
+    setLoadingPreview(true);
+    setPreviewData([]);
+
+    try {
+      let data: any[] = [];
+      if (label === 'Tutores') {
+        const { data: res } = await supabase
+          .from('profiles')
+          .select('full_name, email, created_at')
+          .eq('role', 'tutor')
+          .order('created_at', { ascending: false })
+          .limit(5);
+        data = res || [];
+      } else if (label === 'Pets') {
+        const { data: res } = await supabase
+          .from('patients')
+          .select('name, species, breed, created_at')
+          .order('created_at', { ascending: false })
+          .limit(5);
+        data = res || [];
+      } else if (label === 'Veterinários') {
+        const { data: res } = await supabase
+          .from('veterinarians')
+          .select('status, profile:profiles(full_name, email)')
+          .order('created_at', { ascending: false })
+          .limit(5);
+        data = res || [];
+      } else if (label === 'Consultas/Mês') {
+        const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+        // Tentativa de buscar com relacionamentos. Se falhar, pode precisar ajustar os nomes das foreign keys.
+        const { data: res } = await supabase
+          .from('consultations')
+          .select('id, consultation_date, diagnosis')
+          .gte('consultation_date', firstDayOfMonth)
+          .order('consultation_date', { ascending: false })
+          .limit(5);
+        data = res || [];
+      }
+      setPreviewData(data);
+    } catch (error) {
+      console.error("Error fetching preview data", error);
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
   const recentLogs = [
     { user: 'Admin', action: 'Acessou o painel de controle', time: 'Agora' },
     { user: 'Sistema', action: 'Banco de dados sincronizado', time: 'Sincronizado' }
@@ -90,7 +148,11 @@ const Admin: React.FC<AdminProps> = ({ navigateTo }) => {
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4 mb-8">
           {stats.map((stat) => (
-            <div key={stat.label} className="bg-white dark:bg-[#151d27] p-4 rounded-3xl shadow-sm border dark:border-slate-800 transition-transform active:scale-95 cursor-pointer">
+            <div
+              key={stat.label}
+              onClick={() => handleStatClick(stat.label)}
+              className={`bg-white dark:bg-[#151d27] p-4 rounded-3xl shadow-sm border dark:border-slate-800 transition-all active:scale-95 cursor-pointer ${activePreview === stat.label ? 'ring-2 ring-primary border-transparent' : ''}`}
+            >
               <div className={`${stat.color} w-10 h-10 rounded-2xl flex items-center justify-center text-white mb-3 shadow-lg shadow-${stat.color.split('-')[1]}-500/20`}>
                 <span className="material-symbols-outlined text-[20px]">{stat.icon}</span>
               </div>
@@ -99,6 +161,68 @@ const Admin: React.FC<AdminProps> = ({ navigateTo }) => {
             </div>
           ))}
         </div>
+
+        {/* Preview Section */}
+        {activePreview && (
+          <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="flex items-center justify-between mb-4 px-1">
+              <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest">Prévia: {activePreview}</h3>
+              <button onClick={() => setActivePreview(null)} className="text-xs font-bold text-primary">Fechar</button>
+            </div>
+            <div className="bg-white dark:bg-[#151d27] rounded-3xl border dark:border-slate-800 overflow-hidden">
+              {loadingPreview ? (
+                <div className="p-8 flex justify-center text-slate-400">
+                  <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                </div>
+              ) : previewData.length === 0 ? (
+                <div className="p-8 text-center text-slate-400">
+                  <span className="material-symbols-outlined block text-3xl mb-2 opacity-50">search_off</span>
+                  <span className="text-xs font-bold">Nenhum registro encontrado</span>
+                </div>
+              ) : (
+                <div className="divide-y dark:divide-slate-800">
+                  {previewData.map((item, i) => (
+                    <div key={i} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        {/* Render Logic specific to type */}
+                        {activePreview === 'Tutores' && (
+                          <>
+                            <p className="text-sm font-bold truncate">{item.full_name || 'Sem Nome'}</p>
+                            <p className="text-[10px] text-slate-400 font-bold truncate">{item.email}</p>
+                          </>
+                        )}
+                        {activePreview === 'Pets' && (
+                          <>
+                            <p className="text-sm font-bold truncate">{item.name || 'Sem Nome'}</p>
+                            <p className="text-[10px] text-slate-400 font-bold truncate">{item.species} • {item.breed}</p>
+                          </>
+                        )}
+                        {activePreview === 'Veterinários' && (
+                          <>
+                            <p className="text-sm font-bold truncate">{item.profile?.full_name || 'Sem Nome'}</p>
+                            <p className="text-[10px] text-slate-400 font-bold truncate">Status: {item.status}</p>
+                          </>
+                        )}
+                        {activePreview === 'Consultas/Mês' && (
+                          <>
+                            <p className="text-sm font-bold truncate">Consulta #{item.id?.substring(0, 8)}</p>
+                            <p className="text-[10px] text-slate-400 font-bold truncate">
+                              {new Date(item.consultation_date).toLocaleDateString('pt-BR')} • {item.diagnosis ? 'Com diagnóstico' : 'Em andamento'}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                      <span className="material-symbols-outlined text-slate-300 text-sm">chevron_right</span>
+                    </div>
+                  ))}
+                  <div className="p-3 bg-slate-50 dark:bg-slate-900/50 text-center">
+                    <button className="text-[10px] font-extrabold text-primary uppercase tracking-widest">Ver Todos</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Botão de Cadastro Direto */}
         <div className="mb-8">

@@ -93,6 +93,28 @@ const VetSettings: React.FC<VetSettingsProps> = ({ navigateTo, isDarkMode, toggl
                     </div>
                 </section>
 
+                {/* Security Section */}
+                <section className="mb-8">
+                    <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-4 px-1">Segurança</h3>
+                    <div className="bg-white dark:bg-[#2a231d] rounded-3xl shadow-sm border dark:border-white/5 overflow-hidden">
+                        <button
+                            onClick={() => navigateTo('change-password')}
+                            className="w-full p-5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className="h-10 w-10 bg-slate-100 dark:bg-white/10 rounded-2xl flex items-center justify-center text-slate-500 dark:text-slate-300">
+                                    <span className="material-symbols-outlined">lock</span>
+                                </div>
+                                <div className="text-left">
+                                    <p className="font-extrabold text-base">Alterar Senha</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">Atualizar credenciais</p>
+                                </div>
+                            </div>
+                            <span className="material-symbols-outlined text-slate-400">chevron_right</span>
+                        </button>
+                    </div>
+                </section>
+
             </main>
         </div>
     );

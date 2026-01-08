@@ -49,8 +49,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 console.error('Error initializing auth:', error);
             } finally {
                 setLoading(false);
+                clearTimeout(safetyTimeout);
             }
         };
+
+        // Failsafe: Force loading to false after 3 seconds if something gets stuck
+        const safetyTimeout = setTimeout(() => {
+            console.warn('Auth initialization timed out, forcing app load.');
+            setLoading(false);
+        }, 3000);
 
         initializeAuth();
 
@@ -69,7 +76,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setLoading(false);
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            clearTimeout(safetyTimeout);
+            subscription.unsubscribe();
+        };
     }, []);
 
     const signOut = async () => {
@@ -85,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return (
         <AuthContext.Provider value={{ session, user, profile, signOut, refreshProfile, loading }}>
-            {!loading && children}
+            {children}
         </AuthContext.Provider>
     );
 };

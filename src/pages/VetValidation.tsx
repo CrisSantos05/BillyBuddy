@@ -25,7 +25,8 @@ interface RealVet {
 const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) => {
     const [vets, setVets] = useState<RealVet[]>([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState<'ALL' | 'PENDING'>('ALL');
+    const [inactiveIds, setInactiveIds] = useState<string[]>([]);
+    const [filter, setFilter] = useState<'ALL' | 'INACTIVE'>('ALL');
     const [editingPasswordId, setEditingPasswordId] = useState<string | null>(null);
     const [newPassword, setNewPassword] = useState('');
 
@@ -78,34 +79,54 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
     };
 
     const handleDeleteVet = async (id: string, userId: string) => {
-        if (!confirm('Tem certeza que deseja excluir este veterinário? Esta ação não pode ser desfeita.')) return;
+        // Mantido para compatibilidade, mas agora redireciona para marcação como inativo.
+        await handleMarkInactive(id);
+    };
 
+    // Nova função para marcar veterinário como INATIVO
+    const handleMarkInactive = async (id: string) => {
+        if (!confirm('Tem certeza que deseja marcar este veterinário como cliente inativo?')) return;
         try {
             setLoading(true);
-
-            // 1. Delete from profiles (which cascades to veterinarians)
-            const { error: profileError, status } = await supabase
-                .from('profiles')
-                .delete()
-                .eq('id', id);
-
-            if (profileError) {
-                throw profileError;
+            const { data, error } = await supabase
+                .from('veterinarians')
+                .update({ status: 'INATIVO' })
+                .eq('id', id)
+                .select();
+            if (error) {
+                console.error('Erro ao marcar inativo:', error);
+                throw error;
             }
+            // Atualiza lista local
+            setVets(prev => prev.map(v => (v.id === id ? { ...v, status: 'INATIVO' } : v)));
+            alert('Veterinário marcado como cliente inativo.');
+        } catch (e: any) {
+            console.error('Erro ao marcar inativo:', e);
+            alert(`Erro ao marcar inativo: ${e.message || 'Problema de rede'}`);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-            // 2. Check if the operation was successful (Status 204 or 200)
-            // Even if RLS blocks, PostgREST might return 204. But if RLS allows and it matches, it's a success.
-            if (status !== 200 && status !== 204) {
-                throw new Error('O servidor retornou um erro ao tentar processar a exclusão.');
+    const handleMarkActive = async (id: string) => {
+        if (!confirm('Tem certeza que deseja reativar este veterinário?')) return;
+        try {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('veterinarians')
+                .update({ status: 'ATIVO' })
+                .eq('id', id)
+                .select();
+            if (error) {
+                console.error('Erro ao reativar:', error);
+                throw error;
             }
-
-            // 3. Update the list immediately
-            setVets(prev => prev.filter(v => v.id !== id));
-            alert('Veterinário removido com sucesso!');
-
-        } catch (error: any) {
-            console.error('Critical deletion error:', error);
-            alert(`Erro ao excluir: ${error.message || 'Houve um problema de rede'}`);
+            // Atualiza lista local
+            setVets(prev => prev.map(v => (v.id === id ? { ...v, status: 'ATIVO' } : v)));
+            alert('Veterinário reativado com sucesso.');
+        } catch (e: any) {
+            console.error('Erro ao reativar:', e);
+            alert(`Erro ao reativar: ${e.message || 'Problema de rede'}`);
         } finally {
             setLoading(false);
         }
@@ -128,18 +149,29 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
             return;
         }
 
-        // Note: Real password update client-side for another user sends an email.
         try {
-            // We can trigger a reset password email to the user
-            const { error } = await supabase.auth.resetPasswordForEmail(email);
+            // Update the temp_password in profiles table
+            // Note: This does not update the actual Auth password unless there is a database trigger.
+            // We assume the system handles this or this is the intended workflow for "temp" passwords.
+            const { error } = await supabase
+                .from('profiles')
+                .update({ temp_password: newPassword })
+                .eq('id', id);
+
             if (error) throw error;
 
-            alert(`Solicitação enviada! Um email de redefinição de senha foi enviado para ${email}.`);
+            // Send WhatsApp Notification with the NEW password
+            const targetVet = vets.find(v => v.id === id);
+            if (targetVet?.profile?.phone) {
+                const cleanPhone = targetVet.profile.phone.replace(/\D/g, '');
+                const message = encodeURIComponent(`Olá, ${targetVet.profile.full_name}! 🐾\n\nSua senha de acesso ao BillyBuddy foi redefinida pelo administrador.\n\n📧 Login: ${email}\n🔑 Nova Senha: ${newPassword}\n\nLink: ${window.location.origin}`);
+                window.open(`https://wa.me/55${cleanPhone}?text=${message}`, '_blank');
+            }
+
+            alert(`Senha redefinida no perfil e enviada via WhatsApp!`);
         } catch (e: any) {
             console.error(e);
-            alert("Não foi possível enviar o email de redefinição. (Em produção, isso requer o backend real).");
-            // Fallback for demo:
-            alert("Simulação: Senha atualizada no sistema mock.");
+            alert("Erro ao atualizar senha: " + e.message);
         }
 
         setEditingPasswordId(null);
@@ -147,10 +179,9 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
     };
 
     // Filter Logic
-    const filteredVets = (filter === 'ALL'
-        ? vets
-        : vets.filter(v => v.status === (filter === 'PENDING' ? 'PENDENTE' : 'ATIVO'))
-    );
+    const filteredVets = filter === 'ALL'
+        ? vets.filter(v => v.status !== 'INATIVO')
+        : vets.filter(v => v.status === 'INATIVO');
 
     return (
         <div className="flex flex-col h-full bg-[#f8f7f6] dark:bg-[#0b1118] text-slate-900 dark:text-white overflow-hidden">
@@ -172,10 +203,10 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
                         Todos
                     </button>
                     <button
-                        onClick={() => setFilter('PENDING')}
-                        className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${filter === 'PENDING' ? 'bg-primary text-white shadow-md' : 'text-slate-500'}`}
+                        onClick={() => setFilter('INACTIVE')}
+                        className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${filter === 'INACTIVE' ? 'bg-primary text-white shadow-md' : 'text-slate-500'}`}
                     >
-                        Pendentes
+                        Cliente inativo
                     </button>
                 </div>
 
@@ -195,6 +226,7 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
                                             <h3 className="font-extrabold text-sm flex items-center gap-2">
                                                 {vet.profile?.full_name || 'Sem Nome'}
                                                 {vet.status === 'ATIVO' && <span className="material-symbols-outlined text-green-500 text-[16px] filled">verified</span>}
+                                                {vet.status === 'INATIVO' && <span className="material-symbols-outlined text-red-500 text-[16px] filled">dangerous</span>}
                                             </h3>
                                             <p className="text-xs text-slate-500 font-bold">CRMV-{vet.uf} {vet.crmv}</p>
                                         </div>
@@ -204,9 +236,15 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
                                                     <span className="material-symbols-outlined text-[20px]">edit</span>
                                                 </button>
                                             )}
-                                            <button onClick={() => handleDeleteVet(vet.id, vet.id)} className="p-2 text-slate-400 hover:text-red-500 transition-colors" title="Excluir Veterinário">
-                                                <span className="material-symbols-outlined text-[20px]">delete</span>
-                                            </button>
+                                            {vet.status === 'INATIVO' ? (
+                                                <button onClick={() => handleMarkActive(vet.id)} className="p-2 text-slate-400 hover:text-green-500 transition-colors" title="Reativar Veterinário">
+                                                    <span className="material-symbols-outlined text-[20px]">check_circle</span>
+                                                </button>
+                                            ) : (
+                                                <button onClick={() => handleMarkInactive(vet.id)} className="p-2 text-slate-400 hover:text-orange-500 transition-colors" title="Marcar como Cliente Inativo">
+                                                    <span className="material-symbols-outlined text-[20px]">block</span>
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

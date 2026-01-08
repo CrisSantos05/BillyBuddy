@@ -30,11 +30,14 @@ const ForcePasswordChange: React.FC<ForcePasswordChangeProps> = ({ navigateTo })
             const { error: authError } = await supabase.auth.updateUser({ password: password });
             if (authError) throw authError;
 
-            // 2. Update Database Flag
+            // 2. Update Database Flag AND Clear Temp Password
             if (user) {
                 const { error: dbError } = await supabase
                     .from('profiles')
-                    .update({ must_change_password: false })
+                    .update({
+                        must_change_password: false,
+                        temp_password: null
+                    })
                     .eq('id', user.id);
 
                 if (dbError) throw dbError;
@@ -45,11 +48,19 @@ const ForcePasswordChange: React.FC<ForcePasswordChangeProps> = ({ navigateTo })
 
             alert('Senha atualizada com sucesso!');
 
-            // 4. Redirect to dashboard happens automatically via App.tsx 
-            // but we can force it here just in case.
-            navigateTo(profile?.role === 'admin' ? 'admin' : 'vet-dashboard');
+            // 4. Manual Redirect with slight delay to ensure state propagates
+            setTimeout(() => {
+                if (profile?.role === 'admin') {
+                    navigateTo('admin');
+                } else if (profile?.role === 'vet') {
+                    navigateTo('vet-dashboard');
+                } else {
+                    navigateTo('tutor-dashboard');
+                }
+            }, 500);
 
         } catch (error: any) {
+            console.error(error);
             alert('Erro ao atualizar senha: ' + error.message);
         } finally {
             setLoading(false);

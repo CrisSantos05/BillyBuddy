@@ -19,22 +19,19 @@ import AdminLogin from './pages/AdminLogin';
 import PatientRegistration from './pages/PatientRegistration';
 import ForcePasswordChange from './pages/ForcePasswordChange';
 import VetProfileView from './pages/VetProfileView';
+import ChangePassword from './pages/ChangePassword';
 
 const AppContent: React.FC = () => {
   const { session, loading: authLoading, profile, user } = useAuth();
 
   // Persist Page State
-  const [currentPage, setCurrentPage] = useState<string>(() => {
-    return localStorage.getItem('billybuddy_page') || 'login';
-  });
+  const [currentPage, setCurrentPage] = useState<string>('login');
 
   const [userRole, setUserRole] = useState<UserRole>('tutor');
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [selectedVetId, setSelectedVetId] = useState<string | null>(null);
 
-  useEffect(() => {
-    localStorage.setItem('billybuddy_page', currentPage);
-  }, [currentPage]);
+  // Removed localStorage persistence for currentPage to ensure fresh login on reload
 
   useEffect(() => {
     if (isDarkMode) {
@@ -46,18 +43,21 @@ const AppContent: React.FC = () => {
 
   // Handle Session - Auto Redirect
   useEffect(() => {
-    if (session && profile && currentPage === 'login') {
+    if (authLoading) return;
+
+    if (session && profile) {
+      /* 1. Global Guard: Force Password Change (Desativado conforme pedido)
       if (profile.must_change_password) {
-        setCurrentPage('force-password-change');
-      } else {
-        if (profile.role === 'admin') {
-          setCurrentPage('admin');
-        } else {
-          setCurrentPage(profile.role === 'vet' ? 'vet-dashboard' : 'tutor-dashboard');
+        if (currentPage !== 'force-password-change') {
+          setCurrentPage('force-password-change');
         }
+        return;
       }
+      */
+
+      // Removed Initial Login Redirect to force manual login
     }
-  }, [session, profile, currentPage]);
+  }, [session, profile, currentPage, authLoading]);
 
   const renderPage = () => {
     switch (currentPage) {
@@ -109,6 +109,8 @@ const AppContent: React.FC = () => {
         return <VetProfileView navigateTo={setCurrentPage} vetId={selectedVetId} />;
       case 'vet-settings':
         return <VetSettings navigateTo={setCurrentPage} isDarkMode={isDarkMode} toggleTheme={() => setIsDarkMode(!isDarkMode)} />;
+      case 'change-password':
+        return <ChangePassword navigateTo={setCurrentPage} />;
       default:
         return <Login
           onLogin={(role) => {

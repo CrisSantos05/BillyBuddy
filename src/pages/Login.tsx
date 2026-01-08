@@ -23,60 +23,54 @@ const Login: React.FC<LoginProps> = ({ onLogin, navigateTo }) => {
     setLoading(true);
 
     try {
-      if (activeTab === 'tutor') {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
+      // 1. Tentar Login Universal (Supabase Auth)
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
-        if (error) throw error;
+      if (authError) throw authError;
 
-        onLogin('tutor');
-      } else {
-        // Real Vet Login Implementation
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
+      if (authData.user) {
+        console.log('Login Auth realizado. Buscando perfil...');
 
-        if (authError) throw authError;
+        // 2. Buscar Perfil com TIMEOUT para evitar travamento infinito
+        const fetchProfilePromise = supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', authData.user.id)
+          .single();
 
-        if (authData.user) {
-          // Check Profile and Role Enforcement
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('must_change_password, role')
-            .eq('id', authData.user.id)
-            .single();
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('timeout')), 5000)
+        );
 
-          // 1. Force Password Change Check
-          if (profile?.must_change_password) {
-            navigateTo('force-password-change');
-            return;
+        let profileRole = 'tutor'; // Default fallback
+
+        try {
+          const result: any = await Promise.race([fetchProfilePromise, timeoutPromise]);
+          if (result.data) {
+            profileRole = result.data.role;
           }
+        } catch (err) {
+          console.warn('Busca de perfil falhou ou deu timeout, usando papel padrão.');
+        }
 
-          // 2. Strict Role Enforcement
-          if (profile?.role === 'vet') {
-            onLogin('vet');
-          } else if (profile?.role === 'admin') {
-            onLogin('admin');
-          } else {
-            // If user exists but is NOT a vet/admin (e.g. Tutor trying to login as Vet), deny access
-            await supabase.auth.signOut(); // Ensure session is cleared
-            alert('Acesso Negado: Esta conta não possui permissões administrativas ou de veterinário.');
-          }
+        // 3. Redirecionamento
+        if (profileRole === 'admin') {
+          onLogin('admin');
+        } else if (profileRole === 'vet') {
+          onLogin('vet');
+        } else {
+          onLogin('tutor');
         }
       }
     } catch (error: any) {
-
-      console.error('Login Error:', error);
-      if (error.message.includes('Email not confirmed')) {
-        alert('Seu email ainda não foi confirmado. Verifique sua caixa de entrada (ou spam) para validar o cadastro.');
-      } else if (error.message.includes('Invalid login credentials')) {
-        alert('Email ou senha incorretos. Verifique se digitou a senha provisória corretamente.');
-      } else {
-        alert('Erro no login: ' + error.message);
-      }
+      console.error('Detailed Login Error:', error);
+      const errorMessage = error.message === 'Invalid login credentials'
+        ? 'Email ou senha incorretos. Verifique se a senha provisória está correta.'
+        : `Erro no login: ${error.message}`;
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
