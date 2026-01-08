@@ -38,26 +38,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         const initializeAuth = async () => {
             try {
+                console.log('[AuthContext] Iniciando autenticação...');
                 const { data: { session } } = await supabase.auth.getSession();
+                console.log('[AuthContext] Sessão obtida:', session ? 'Sessão ativa' : 'Sem sessão');
+
                 setSession(session);
                 setUser(session?.user ?? null);
 
                 if (session?.user) {
+                    console.log('[AuthContext] Buscando perfil do usuário:', session.user.id);
                     await fetchProfile(session.user.id);
+                    console.log('[AuthContext] Perfil carregado com sucesso');
                 }
             } catch (error) {
-                console.error('Error initializing auth:', error);
+                console.error('[AuthContext] Erro na inicialização:', error);
             } finally {
+                console.log('[AuthContext] Finalizando inicialização');
                 setLoading(false);
                 clearTimeout(safetyTimeout);
             }
         };
 
-        // Failsafe: Force loading to false after 3 seconds if something gets stuck
+        // Failsafe: Force loading to false after 10 seconds if something gets stuck
         const safetyTimeout = setTimeout(() => {
-            console.warn('Auth initialization timed out, forcing app load.');
+            console.warn('Auth initialization timed out after 10s, forcing app load.');
             setLoading(false);
-        }, 3000);
+        }, 10000);
 
         initializeAuth();
 
