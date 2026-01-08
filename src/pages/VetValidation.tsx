@@ -34,14 +34,15 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
         fetchVets();
     }, []);
 
-    const fetchVets = async () => {
+    const fetchVets = async (retryCount = 0) => {
         try {
             setLoading(true);
-            console.log('Iniciando busca de veterinários...');
+            console.log(`Iniciando busca de veterinários... (tentativa ${retryCount + 1}/3)`);
 
-            // Create a timeout promise
+            // Create a timeout promise (30s for first try, 45s for retries)
+            const timeoutDuration = retryCount === 0 ? 30000 : 45000;
             const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Timeout: A busca demorou mais de 15 segundos')), 15000)
+                setTimeout(() => reject(new Error(`Timeout após ${timeoutDuration / 1000}s`)), timeoutDuration)
             );
 
             // Create the query promise
@@ -89,7 +90,16 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
 
         } catch (error: any) {
             console.error("Erro ao buscar veterinários:", error);
-            alert(`Erro ao carregar lista: ${error.message || 'Erro desconhecido'}. Verifique sua conexão com a internet e tente novamente.`);
+
+            // Retry logic: try up to 3 times
+            if (retryCount < 2) {
+                console.log(`Tentando novamente em 2 segundos...`);
+                setLoading(false);
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                return fetchVets(retryCount + 1);
+            }
+
+            alert(`Erro ao carregar lista após 3 tentativas: ${error.message || 'Erro desconhecido'}. Por favor, recarregue a página.`);
         } finally {
             setLoading(false);
         }
