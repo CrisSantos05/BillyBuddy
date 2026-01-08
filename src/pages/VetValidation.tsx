@@ -137,46 +137,47 @@ const VetValidation: React.FC<VetValidationProps> = ({ navigateTo, onEditVet }) 
     const handleMarkInactive = async (id: string) => {
         if (!confirm('Tem certeza que deseja marcar este veterinário como cliente inativo?')) return;
         try {
-            setLoading(true);
-            const { data, error } = await supabase
+            const { error } = await supabase
                 .from('veterinarians')
                 .update({ status: 'INATIVO' })
-                .eq('id', id)
-                .select();
+                .eq('id', id);
+
             if (error) {
                 console.error('Erro ao marcar inativo:', error);
                 throw error;
             }
-            alert('Veterinário marcado como cliente inativo.');
-            // Recarrega a lista completa do banco de dados
-            await fetchVets();
+
+            // Atualiza estado local imediatamente para feedback instantâneo e correto
+            setVets(prev => prev.map(v => (v.id === id ? { ...v, status: 'INATIVO' } : v)));
+
         } catch (e: any) {
             console.error('Erro ao marcar inativo:', e);
             alert(`Erro ao marcar inativo: ${e.message || 'Problema de rede'}`);
-            setLoading(false);
+            // Em caso de erro, recarregamos para garantir consistência
+            fetchVets();
         }
     };
 
     const handleMarkActive = async (id: string) => {
         if (!confirm('Tem certeza que deseja reativar este veterinário?')) return;
         try {
-            setLoading(true);
-            const { data, error } = await supabase
+            const { error } = await supabase
                 .from('veterinarians')
                 .update({ status: 'ATIVO' })
-                .eq('id', id)
-                .select();
+                .eq('id', id);
+
             if (error) {
                 console.error('Erro ao reativar:', error);
                 throw error;
             }
-            alert('Veterinário reativado com sucesso.');
-            // Recarrega a lista completa do banco de dados
-            await fetchVets();
+
+            // Atualiza estado local imediatamente
+            setVets(prev => prev.map(v => (v.id === id ? { ...v, status: 'ATIVO' } : v)));
+
         } catch (e: any) {
             console.error('Erro ao reativar:', e);
             alert(`Erro ao reativar: ${e.message || 'Problema de rede'}`);
-            setLoading(false);
+            fetchVets();
         }
     };
 
