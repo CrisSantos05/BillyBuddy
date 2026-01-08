@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { MOCK_PETS } from '../constants';
 
@@ -7,6 +8,45 @@ interface SchedulingProps {
 }
 
 const Scheduling: React.FC<SchedulingProps> = ({ navigateTo }) => {
+  const { user, profile } = useAuth();
+  const isVet = profile?.role === 'veterinarian' || user?.user_metadata?.role === 'vet';
+
+  // --- Vet View Logic ---
+  const [schedule, setSchedule] = useState<any[]>([]);
+  const [loadingSchedule, setLoadingSchedule] = useState(false);
+
+  useEffect(() => {
+    if (isVet && user) {
+      fetchVetSchedule();
+    }
+  }, [isVet, user]);
+
+  const fetchVetSchedule = async () => {
+    setLoadingSchedule(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('appointments')
+        .select(`
+          *,
+          patient:patients (name, species, breed),
+          tutor:profiles (full_name, phone)
+        `)
+        .eq('vet_id', user?.id)
+        .gte('appointment_date', today) // Show future appointments
+        .order('appointment_date', { ascending: true })
+        .order('appointment_time', { ascending: true });
+
+      if (error) throw error;
+      setSchedule(data || []);
+    } catch (error) {
+      console.error('Error fetching schedule:', error);
+    } finally {
+      setLoadingSchedule(false);
+    }
+  };
+
+  // --- Tutor View Logic ---
   const [loading, setLoading] = useState(false);
   const [selectedPet, setSelectedPet] = useState(MOCK_PETS[0].id);
   const [selectedDate, setSelectedDate] = useState('13');
@@ -50,6 +90,71 @@ const Scheduling: React.FC<SchedulingProps> = ({ navigateTo }) => {
 
   const timesManha = ['09:00', '09:30', '10:00', '10:30'];
   const timesTarde = ['14:00', '14:30', '15:00', '15:30'];
+
+  if (isVet) {
+    return (
+      <div className="flex flex-col h-full bg-[#f8f7f6] dark:bg-[#181411] text-gray-900 dark:text-white overflow-hidden">
+        <header className="sticky top-0 z-20 flex items-center bg-white dark:bg-[#2d241b] px-4 py-4 justify-between shadow-sm">
+          <button onClick={() => navigateTo('vet-dashboard')} className="flex size-10 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+            <span className="material-symbols-outlined">arrow_back</span>
+          </button>
+          <h2 className="text-lg font-bold leading-tight flex-1 text-center pr-10">Minha Agenda</h2>
+        </header>
+
+        <main className="flex-1 overflow-y-auto pb-32 no-scrollbar px-4 pt-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-extrabold">Próximos Agendamentos</h3>
+            <span className="bg-primary/10 text-primary px-3 py-1 rounded-lg text-xs font-bold">{schedule.length} Consultas</span>
+          </div>
+
+          {loadingSchedule ? (
+            <div className="text-center py-10 text-slate-400">
+              <span className="material-symbols-outlined animate-spin text-3xl mb-2">sync</span>
+              <p className="font-bold">Carregando agenda...</p>
+            </div>
+          ) : schedule.length === 0 ? (
+            <div className="text-center py-10 text-slate-400 bg-white dark:bg-[#2d241b] rounded-3xl border dark:border-white/5">
+              <span className="material-symbols-outlined text-4xl mb-2 opacity-50">event_busy</span>
+              <p className="font-bold">Nenhum agendamento encontrado.</p>
+              <p className="text-xs mt-1">Sua agenda está livre por enquanto.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {schedule.map((item) => (
+                <div key={item.id} className="bg-white dark:bg-[#2d241b] p-5 rounded-3xl shadow-sm border dark:border-white/5 flex gap-4">
+                  <div className="flex flex-col items-center justify-center w-16 h-16 bg-slate-100 dark:bg-white/5 rounded-2xl shrink-0">
+                    <span className="text-xs font-bold text-slate-400 uppercase">{new Date(item.appointment_date).toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}</span>
+                    <span className="text-xl font-extrabold text-primary">{new Date(item.appointment_date).getDate()}</span>
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start mb-1">
+                      <h4 className="font-extrabold text-lg truncate">{item.appointment_time?.substring(0, 5)}</h4>
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-lg uppercase ${item.status === 'AGENDADO' ? 'bg-blue-100 text-blue-600' :
+                          item.status === 'CONCLUIDO' ? 'bg-green-100 text-green-600' : 'bg-slate-100'
+                        }`}>
+                        {item.status}
+                      </span>
+                    </div>
+
+                    <p className="font-bold text-sm truncate">{item.patient?.name || 'Pet desconhecido'}</p>
+                    <p className="text-xs text-slate-500 truncate">{item.patient?.species} • {item.patient?.breed}</p>
+
+                    {item.tutor && (
+                      <div className="mt-3 pt-3 border-t dark:border-white/5 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-slate-400 text-sm">person</span>
+                        <span className="text-xs font-bold text-slate-500 truncate">{item.tutor.full_name}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-[#f8f7f6] dark:bg-[#181411] text-gray-900 dark:text-white overflow-hidden">
@@ -147,8 +252,8 @@ const Scheduling: React.FC<SchedulingProps> = ({ navigateTo }) => {
                   }
                 }}
                 className={`flex flex-col items-center justify-center min-w-[65px] h-20 rounded-2xl border transition-all cursor-pointer ${d.disabled ? 'bg-slate-50 opacity-30 grayscale pointer-events-none' :
-                    selectedDate === d.value ? 'bg-primary border-primary shadow-lg shadow-primary/30 scale-105' :
-                      'bg-white dark:bg-[#2d241b] border-slate-100 dark:border-white/5'
+                  selectedDate === d.value ? 'bg-primary border-primary shadow-lg shadow-primary/30 scale-105' :
+                    'bg-white dark:bg-[#2d241b] border-slate-100 dark:border-white/5'
                   }`}
               >
                 <span className={`text-[10px] font-bold ${selectedDate === d.value ? 'text-white/80' : 'text-slate-400'}`}>{d.label}</span>
@@ -170,7 +275,7 @@ const Scheduling: React.FC<SchedulingProps> = ({ navigateTo }) => {
                     key={t}
                     onClick={() => setSelectedTime(t)}
                     className={`py-3 rounded-xl border text-sm font-bold transition-all ${selectedTime === t ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20' :
-                        'bg-white dark:bg-[#2d241b] border-slate-100 dark:border-white/5'
+                      'bg-white dark:bg-[#2d241b] border-slate-100 dark:border-white/5'
                       }`}
                   >
                     {t}
@@ -186,7 +291,7 @@ const Scheduling: React.FC<SchedulingProps> = ({ navigateTo }) => {
                     key={t}
                     onClick={() => setSelectedTime(t)}
                     className={`py-3 rounded-xl border text-sm font-bold transition-all ${selectedTime === t ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20' :
-                        'bg-white dark:bg-[#2d241b] border-slate-100 dark:border-white/5'
+                      'bg-white dark:bg-[#2d241b] border-slate-100 dark:border-white/5'
                       }`}
                   >
                     {t}
