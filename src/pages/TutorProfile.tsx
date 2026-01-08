@@ -101,7 +101,7 @@ const TutorProfile: React.FC<TutorProfileProps> = ({ navigateTo }) => {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-extrabold text-slate-400 uppercase tracking-widest ml-1">Telefone</label>
+            <label className="text-xs font-extrabold text-slate-400 uppercase tracking-widest ml-1">Celular (WhatsApp)</label>
             <div className="relative">
               <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">phone</span>
               <input

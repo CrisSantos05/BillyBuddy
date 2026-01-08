@@ -19,7 +19,7 @@ import AdminLogin from './pages/AdminLogin';
 import PatientRegistration from './pages/PatientRegistration';
 import ForcePasswordChange from './pages/ForcePasswordChange';
 import VetProfileView from './pages/VetProfileView';
-import ChangePassword from './pages/ChangePassword';
+import ChangePassword from './pages/ChangePassword.tsx';
 
 const AppContent: React.FC = () => {
   const { session, loading: authLoading, profile, user } = useAuth();

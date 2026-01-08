@@ -225,7 +225,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ navigateTo, vetId }
             </label>
 
             <label className="block">
-              <span className="text-xs font-bold text-slate-500 uppercase">WhatsApp</span>
+              <span className="text-xs font-bold text-slate-500 uppercase">Celular (WhatsApp)</span>
               <input name="phone" value={formData.phone} onChange={handleChange} className="w-full h-14 rounded-2xl border dark:border-[#54473b] bg-white dark:bg-[#2A221C] px-5 font-bold outline-none mt-1" placeholder="Ex: 11999999999" />
             </label>
 

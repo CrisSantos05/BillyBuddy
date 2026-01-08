@@ -165,7 +165,7 @@ const TutorRegistrationModal: React.FC<TutorRegistrationModalProps> = ({ isOpen,
                                 />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-400 uppercase ml-1">Telefone (WhatsApp)</label>
+                                <label className="text-xs font-bold text-slate-400 uppercase ml-1">Celular (WhatsApp)</label>
                                 <input
                                     name="phone"
                                     value={formData.phone}
