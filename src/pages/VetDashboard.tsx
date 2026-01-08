@@ -1,6 +1,7 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 
 interface VetDashboardProps {
   navigateTo: (page: string) => void;
@@ -8,8 +9,51 @@ interface VetDashboardProps {
 
 const VetDashboard: React.FC<VetDashboardProps> = ({ navigateTo }) => {
   const { signOut, profile, user } = useAuth();
+  const [vetData, setVetData] = useState<any>(null);
+  const [stats, setStats] = useState({
+    appointmentsToday: 0,
+    messages: 0,
+    rating: 5.0
+  });
 
-  const displayName = profile?.full_name || user?.user_metadata?.full_name || 'Veterinário';
+  useEffect(() => {
+    const fetchVetData = async () => {
+      if (!user) return;
+
+      try {
+        // 1. Fetch Vet Details
+        const { data: vet } = await supabase
+          .from('veterinarians')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (vet) {
+          setVetData(vet);
+        }
+
+        // 2. Fetch Appointments Count for Today (Mocked logic if table structure is unknown, assuming 'consultations')
+        const today = new Date().toISOString().split('T')[0];
+        const { count } = await supabase
+          .from('consultations')
+          .select('*', { count: 'exact', head: true })
+          .eq('veterinarian_id', user.id) // Assuming column name
+          .gte('consultation_date', today + 'T00:00:00')
+          .lte('consultation_date', today + 'T23:59:59');
+
+        setStats(prev => ({ ...prev, appointmentsToday: count || 0 }));
+
+      } catch (error) {
+        console.error('Error fetching vet dashboard data:', error);
+      }
+    };
+
+    fetchVetData();
+  }, [user]);
+
+  const displayName = profile?.full_name || 'Veterinário';
+  const clinicName = vetData?.clinic_name || 'Clínica Veterinária';
+  const crmv = vetData?.crmv ? `CRMV-${vetData.uf} ${vetData.crmv}` : 'CRMV não informado';
 
   return (
     <div className="flex flex-col h-full bg-[#f8f7f6] dark:bg-[#221910] text-gray-900 dark:text-white">
@@ -37,8 +81,8 @@ const VetDashboard: React.FC<VetDashboardProps> = ({ navigateTo }) => {
               <h2 className="text-3xl font-extrabold">{displayName}</h2>
               <span className="material-symbols-outlined filled text-primary text-[24px]">verified</span>
             </div>
-            <p className="text-base font-bold text-slate-500 dark:text-[#b9ab9d]">Dermatologia Veterinária</p>
-            <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest opacity-70">Clínica PetCare • CRMV-SP 12345</p>
+            <p className="text-base font-bold text-slate-500 dark:text-[#b9ab9d]">{clinicName}</p>
+            <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest opacity-70">{crmv}</p>
           </div>
         </div>
 
@@ -47,22 +91,22 @@ const VetDashboard: React.FC<VetDashboardProps> = ({ navigateTo }) => {
           <div className="flex-1 min-w-[110px] flex flex-col items-center gap-2 rounded-3xl bg-white dark:bg-[#393028] p-5 shadow-sm border dark:border-white/5">
             <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Hoje</span>
             <div className="text-center">
-              <p className="text-3xl font-extrabold">4</p>
+              <p className="text-3xl font-extrabold">{stats.appointmentsToday}</p>
               <p className="text-[10px] font-bold text-slate-400 uppercase">Consultas</p>
             </div>
           </div>
-          <div className="flex-1 min-w-[110px] flex flex-col items-center gap-2 rounded-3xl bg-white dark:bg-[#393028] p-5 shadow-sm border dark:border-white/5">
+          <div className="flex-1 min-w-[110px] flex flex-col items-center gap-2 rounded-3xl bg-white dark:bg-[#393028] p-5 shadow-sm border dark:border-white/5 opacity-50">
             <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Mensagens</span>
             <div className="text-center">
-              <p className="text-3xl font-extrabold">2</p>
-              <p className="text-[10px] font-bold text-slate-400 uppercase">Novas</p>
+              <p className="text-3xl font-extrabold">-</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase">Em breve</p>
             </div>
           </div>
           <div className="flex-1 min-w-[110px] flex flex-col items-center gap-2 rounded-3xl bg-white dark:bg-[#393028] p-5 shadow-sm border dark:border-white/5">
             <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Avaliação</span>
             <div className="text-center">
               <div className="flex items-center gap-1 justify-center">
-                <p className="text-3xl font-extrabold">4.9</p>
+                <p className="text-3xl font-extrabold">5.0</p>
                 <span className="material-symbols-outlined filled text-yellow-500 text-sm">star</span>
               </div>
               <p className="text-[10px] font-bold text-slate-400 uppercase">Excelente</p>
@@ -72,7 +116,10 @@ const VetDashboard: React.FC<VetDashboardProps> = ({ navigateTo }) => {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-4 px-6 mb-8">
-          <button className="flex flex-col items-start gap-4 rounded-3xl bg-white dark:bg-[#393028] p-5 shadow-sm border dark:border-white/5 transition-all active:scale-[0.98]">
+          <button
+            onClick={() => navigateTo('scheduling')}
+            className="flex flex-col items-start gap-4 rounded-3xl bg-white dark:bg-[#393028] p-5 shadow-sm border dark:border-white/5 transition-all active:scale-[0.98]"
+          >
             <div className="h-12 w-12 bg-primary/10 text-primary flex items-center justify-center rounded-2xl">
               <span className="material-symbols-outlined">calendar_month</span>
             </div>
@@ -81,13 +128,16 @@ const VetDashboard: React.FC<VetDashboardProps> = ({ navigateTo }) => {
               <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">Horários e bloqueios</p>
             </div>
           </button>
-          <button className="flex flex-col items-start gap-4 rounded-3xl bg-white dark:bg-[#393028] p-5 shadow-sm border dark:border-white/5 transition-all active:scale-[0.98]">
+          <button
+            onClick={() => navigateTo('patient-registration')} // Temporary link or create a new listing page
+            className="flex flex-col items-start gap-4 rounded-3xl bg-white dark:bg-[#393028] p-5 shadow-sm border dark:border-white/5 transition-all active:scale-[0.98]"
+          >
             <div className="h-12 w-12 bg-green-500/10 text-green-500 flex items-center justify-center rounded-2xl">
               <span className="material-symbols-outlined">pets</span>
             </div>
             <div className="text-left">
               <p className="font-extrabold text-base">Meus Pacientes</p>
-              <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">Histórico clínico</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">Gerenciar Pacientes</p>
             </div>
           </button>
         </div>
@@ -98,14 +148,14 @@ const VetDashboard: React.FC<VetDashboardProps> = ({ navigateTo }) => {
           <div className="rounded-3xl bg-white dark:bg-[#393028] p-6 shadow-sm border dark:border-white/5 space-y-6">
             <div className="flex gap-4">
               <span className="text-xs font-bold text-slate-400 uppercase w-20 shrink-0">Bio</span>
-              <p className="text-sm font-medium leading-relaxed">Especialista apaixonado por dermatologia de pequenos animais. Com 10 anos de experiência em casos complexos de alergias.</p>
+              <p className="text-sm font-medium leading-relaxed">Veterinário(a) na {clinicName}. Comprometido em oferecer o melhor atendimento para seus pacientes.</p>
             </div>
             <div className="h-px bg-slate-100 dark:bg-white/5"></div>
             <div className="flex gap-4 items-center">
-              <span className="text-xs font-bold text-slate-400 uppercase w-20 shrink-0">Endereço</span>
-              <div className="flex items-center gap-2 text-sm font-bold">
-                <span className="material-symbols-outlined text-primary text-sm">location_on</span>
-                Av. Paulista, 1000 - SP
+              <span className="text-xs font-bold text-slate-400 uppercase w-20 shrink-0">E-mail</span>
+              <div className="flex items-center gap-2 text-sm font-bold truncate">
+                <span className="material-symbols-outlined text-primary text-sm">mail</span>
+                {profile?.email}
               </div>
             </div>
           </div>
